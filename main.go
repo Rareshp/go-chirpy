@@ -21,10 +21,18 @@ func middlewareCors(next http.Handler) http.Handler {
 	})
 }
 
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte("OK"))
+}
+
 func main() {
   mux := http.NewServeMux()
 
-  mux.Handle("/", http.FileServer(http.Dir(filepathRoot)))
+  // or http.Dir("./app")
+  mux.Handle("/app/", http.StripPrefix("/app/", http.FileServer(http.Dir(filepathRoot))))
+  mux.HandleFunc("/healthz", healthHandler)
 
   // wrap the mux to add CORS 
   corsMux := middlewareCors(mux)

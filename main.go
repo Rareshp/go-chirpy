@@ -58,8 +58,8 @@ func main() {
 
   // or http.Dir("./app")
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
-	mux.HandleFunc("/healthz", healthHandler)
-	mux.HandleFunc("/metrics", apiCfg.handlerMetrics)
+	mux.HandleFunc("GET /healthz", healthHandler)
+	mux.HandleFunc("GET /metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("/reset", apiCfg.handlerReset)
 
   // wrap the mux to add CORS 

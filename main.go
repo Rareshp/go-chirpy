@@ -21,6 +21,9 @@ type errorReply struct {
 type validReply struct {
   Valid bool `json:"valid"`
 }
+type cleanReply struct {
+  CleanedBody string `json:"cleaned_body"`
+}
 func middlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -57,6 +60,18 @@ func jsonReplies(w http.ResponseWriter, jsonReply errorReply, status int) {
     w.Write(eJsonReply)
 }
 
+func replaceProfane(bod *body) {
+    newBody := bod.Body
+    profanities := [3]string{"kerfuffle", "sharbert", "fornax"}
+    
+    for _, pw := range profanities {
+        re := regexp.MustCompile(`(?i)\b` + pw + `\b`)
+        newBody = re.ReplaceAllString(newBody, "****")
+    }
+    
+    bod.Body = newBody
+}
+
 func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
   w.Header().Set("Content-Type", "application/json")
   
@@ -84,11 +99,12 @@ func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Reques
     return
   }
 
-  valid := validReply{
-    Valid: true,
+  replaceProfane(&bod)
+  clean := cleanReply {
+    CleanedBody: bod.Body,
   }
 
-  validJsonReply, err := json.Marshal(valid)
+  validJsonReply, err := json.Marshal(clean)
   if err != nil {
     log.Printf("Error marshalling JSON: %s", err)
     w.WriteHeader(500)

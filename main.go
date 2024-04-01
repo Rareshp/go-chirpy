@@ -7,9 +7,19 @@ import (
 
 const filepathRoot = "."
 const port = "8080"
+const chirpCharLimit = 140
 
 type apiConfig struct { 
   fileserverHits int
+}
+type body struct {
+  Body string `json:"body"`
+}
+type errorReply struct {
+  Error string `json:"error"`
+}
+type validReply struct {
+  Valid bool `json:"valid"`
 }
 func middlewareCors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +44,55 @@ func (cfg *apiConfig) handlerMetrics(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
   fmt.Fprintf(w, "<html><body><h1>Welcome, Chirpy Admin</h1><p>Chirpy has been visited %d times!</p></body></html>", cfg.fileserverHits)
+}
+
+func jsonReplies(w http.ResponseWriter, jsonReply errorReply, status int) {
+    eJsonReply, err := json.Marshal(jsonReply)
+    if err != nil {
+      log.Printf("Error marshalling JSON: %s", err)
+    }
+    w.WriteHeader(status)
+    w.Write(eJsonReply)
+}
+
+func (cfg *apiConfig) handlerValidateChirp(w http.ResponseWriter, r *http.Request) {
+  w.Header().Set("Content-Type", "application/json")
+  
+  decoder := json.NewDecoder(r.Body)
+  bod := body{}
+  decodingErr := decoder.Decode(&bod)
+
+  if decodingErr != nil {
+    jsonReply := errorReply{
+      Error: "Something went wrong",
+    }
+    log.Printf(jsonReply.Error)
+
+    jsonReplies(w, jsonReply, 500)
+    return
+  }
+
+  if (len(bod.Body) > chirpCharLimit) {
+    jsonReply := errorReply{
+      Error: "Chirp is too long",
+    }
+    log.Printf(jsonReply.Error)
+
+    jsonReplies(w, jsonReply, 400)
+    return
+  }
+
+  valid := validReply{
+    Valid: true,
+  }
+
+  validJsonReply, err := json.Marshal(valid)
+  if err != nil {
+    log.Printf("Error marshalling JSON: %s", err)
+    w.WriteHeader(500)
+  }
+  // response 200 is implied
+  w.Write(validJsonReply)
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {

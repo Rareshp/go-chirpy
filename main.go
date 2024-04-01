@@ -50,6 +50,8 @@ func jsonReplies(w http.ResponseWriter, jsonReply errorReply, status int) {
     eJsonReply, err := json.Marshal(jsonReply)
     if err != nil {
       log.Printf("Error marshalling JSON: %s", err)
+      w.WriteHeader(500)
+      return
     }
     w.WriteHeader(status)
     w.Write(eJsonReply)

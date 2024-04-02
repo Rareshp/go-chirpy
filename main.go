@@ -1,8 +1,12 @@
 package main
 
 import (
-  "log"
-  "net/http"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"regexp"
 )
 
 const filepathRoot = "."
@@ -138,6 +142,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", healthHandler)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("GET /api/reset", apiCfg.handlerReset)
+  mux.HandleFunc("POST /api/validate_chirp", apiCfg.handlerValidateChirp)
 
   // wrap the mux to add CORS 
   corsMux := middlewareCors(mux)

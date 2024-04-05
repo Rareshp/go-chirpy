@@ -6,6 +6,7 @@ import (
   "errors"
   "strings"
   "sort"
+  "strconv"
 )
 
 type Chirp struct {
@@ -90,4 +91,32 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 	})
 
 	respondWithJSON(w, http.StatusOK, chirps)
+}
+
+func (cfg *apiConfig) handlerChirpsRetrieveById(w http.ResponseWriter, r *http.Request) {
+  // get the id
+  id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve id from the GET request")
+		return
+	}
+
+	dbChirps, err := cfg.DB.GetChirps()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
+		return
+	}
+
+  // equivalent to saying the id exceeds available chirps
+  if len(dbChirps) < id {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+    return
+  }
+
+  chirp := Chirp{
+    ID: dbChirps[id-1].ID,
+    Body: dbChirps[id-1].Body,
+  }
+
+	respondWithJSON(w, http.StatusOK, chirp)
 }

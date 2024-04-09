@@ -59,6 +59,9 @@ func main() {
 
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handlerChirpsRetrieveById)
 
+	mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
+	mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
+
   // wrap the mux to add CORS 
   corsMux := middlewareCors(mux)
 

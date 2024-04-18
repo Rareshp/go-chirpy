@@ -5,21 +5,50 @@ import (
 	"net/http"
   "sort"
   "strconv"
+  "errors"
 )
 
 type User struct {
+  Hash string `json:"hash"`
   Email string `json:"email"`
   ID int `json:"id"`
 }
 
-func validateUser(email string) (string, error) {
-  // TODO
-  return email, nil
+type UserResponse struct {
+  Email string `json:"email"`
+  ID int `json:"id"`
+}
+
+func (cfg *apiConfig) findUserByEmail(email string) (User, error) {
+	dbUsers, err := cfg.DB.GetUsers()
+	if err != nil {
+    return User{}, err
+	}
+  
+	for _, dbUser := range dbUsers {
+    return dbUser, nil
+	}
+
+  return User{}, nil
+}
+
+func (cfg *apiConfig) validateUserEmail(email string) (error) {
+  user, err := cfg.findUserByEmail(email)
+	if err != nil {
+    return err
+	}
+  
+  if user.Email != "" {
+    return errors.New("This email is already used")
+	}
+
+  return nil
 }
 
 func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
+    Password string `json:"password"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -30,27 +59,29 @@ func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	cleaned, err := validateUser(params.Email)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
+  // check if email is in use
+	emailErr := cfg.validateUserEmail(params.Email)
+	if emailErr != nil {
+		respondWithError(w, http.StatusBadRequest, emailErr.Error())
 		return
 	}
 
-	user, err := cfg.DB.CreateUser(cleaned)
+	user, err := cfg.DB.CreateUser(params.Email, params.Password)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create user")
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, User{
+	respondWithJSON(w, http.StatusCreated, UserResponse{
 		Email: user.Email,
 		ID:   user.ID,
 	})
 }
+
 func (cfg *apiConfig) handlerUsersRetrieve(w http.ResponseWriter, r *http.Request) {
 	dbUsers, err := cfg.DB.GetUsers()
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
+	if err == nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't login. Email not in use")
 		return
 	}
 
@@ -95,4 +126,38 @@ func (cfg *apiConfig) handlerUsersRetrieveById(w http.ResponseWriter, r *http.Re
   }
 
 	respondWithJSON(w, http.StatusOK, user)
+}
+
+func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Email string `json:"email"`
+    Password string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := parameters{}
+	err := decoder.Decode(&params)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
+		return
+	}
+
+  // check if email is in use
+	user, emailErr := cfg.findUserByEmail(params.Email)
+	if emailErr != nil {
+		respondWithError(w, http.StatusBadRequest, emailErr.Error())
+		return
+	}
+
+  // check user password 
+  passErr := CheckPasswordHash(params.Password, user.Hash)
+	if passErr != nil {
+		respondWithError(w, http.StatusUnauthorized, passErr.Error())
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, UserResponse{
+		Email: user.Email,
+		ID:   user.ID,
+	})
 }

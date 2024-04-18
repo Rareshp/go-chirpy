@@ -113,16 +113,19 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	return chirps, nil
 }
 
-func (db *DB) CreateUser(email string) (User, error) {
+func (db *DB) CreateUser(email string, password string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
 	}
 
 	id := len(dbStructure.Users) + 1
+  hash, _ := HashPassword(password)
+
 	user := User{
 		ID:   id,
 		Email: email,
+    Hash: hash,
 	}
 	dbStructure.Users[id] = user
 

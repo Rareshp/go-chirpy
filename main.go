@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+  "os"
+  "github.com/joho/godotenv"
 )
 
 const filepathRoot = "."
@@ -13,6 +15,7 @@ const dbPath = "database.json"
 type apiConfig struct { 
   fileserverHits int
   DB             *DB
+  jwtSecret       string
 }
 
 func middlewareCors(next http.Handler) http.Handler {
@@ -35,6 +38,13 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func main() {
+  // read from .env
+  err := godotenv.Load()
+  if err != nil {
+    log.Fatal("Error loading .env file")
+  }
+  jwtSecret := os.Getenv("JWT_SECRET")
+
   mux := http.NewServeMux() 
 
 
@@ -46,6 +56,7 @@ func main() {
   apiCfg := apiConfig {
     fileserverHits: 0,
     DB: db,
+    jwtSecret: jwtSecret,
   }
 
   // or http.Dir("./app")
@@ -60,6 +71,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handlerChirpsRetrieveById)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
 	mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
 
 	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)

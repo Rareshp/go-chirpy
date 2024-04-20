@@ -137,6 +137,29 @@ func (db *DB) CreateUser(email string, password string) (User, error) {
 	return user, nil
 }
 
+func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	user, ok := dbStructure.Users[id]
+	if !ok {
+		return User{}, errors.New("already exists")
+	}
+
+	user.Email = email
+	user.Hash = hashedPassword
+	dbStructure.Users[id] = user
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
 func (db *DB) GetUsers() ([]User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {

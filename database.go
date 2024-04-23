@@ -79,7 +79,7 @@ func (db *DB) loadDB() (DBStructure, error) {
 	return dbStructure, nil
 }
 
-func (db *DB) CreateChirp(body string) (Chirp, error) {
+func (db *DB) CreateChirp(body string, user User) (Chirp, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return Chirp{}, err
@@ -89,6 +89,7 @@ func (db *DB) CreateChirp(body string) (Chirp, error) {
 	chirp := Chirp{
 		ID:   id,
 		Body: body,
+    Author_ID: user.ID,
 	}
 	dbStructure.Chirps[id] = chirp
 
@@ -191,6 +192,20 @@ func (db *DB) FindUserByRefreshToken (refreshToken string) (User, error) {
   
 	for _, dbUser := range dbUsers {
     if dbUser.RefreshToken == refreshToken {
+      return dbUser, nil
+    }
+	}
+
+  return User{}, nil
+}
+func (db *DB) FindUserByAccessToken (accessToken string) (User, error) {
+	dbUsers, err := db.GetUsers()
+	if err != nil {
+    return User{}, err
+	}
+  
+	for _, dbUser := range dbUsers {
+    if dbUser.AccessToken == accessToken {
       return dbUser, nil
     }
 	}

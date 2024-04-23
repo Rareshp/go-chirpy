@@ -12,6 +12,7 @@ import (
 type Chirp struct {
   Body string `json:"body"`
   ID int `json:"id"`
+  Author_ID int `json:"author_id"`
 }
 
 func getCleanedBody(body string, badWords map[string]struct{}) string {
@@ -54,13 +55,39 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	cleaned, err := validateChirp(params.Body)
+	msgCleaned, err := validateChirp(params.Body)
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	chirp, err := cfg.DB.CreateChirp(cleaned)
+	token, err := GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
+		return
+	}
+	_, errS := ValidateJWT(token, cfg.jwtSecret)
+	if errS != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT")
+		return
+	}
+
+  issuer, errI := GetIssuer(token, cfg.jwtSecret)
+  if errI != nil {
+    respondWithError(w, http.StatusUnauthorized, "Coulnd't validate Issuer")
+    return
+  }
+  if issuer != "chirpy-access" {
+    respondWithError(w, http.StatusUnauthorized, "Must use access token for this entry point")
+    return
+  }
+
+  user, errU := cfg.DB.FindUserByAccessToken(token)
+  if errU != nil {
+    respondWithError(w, http.StatusUnauthorized, "Cannoy find user with this token")
+  }
+
+	chirp, err := cfg.DB.CreateChirp(msgCleaned, user)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
 		return
@@ -69,6 +96,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	respondWithJSON(w, http.StatusCreated, Chirp{
 		Body: chirp.Body,
 		ID:   chirp.ID,
+    Author_ID: user.ID,
 	})
 }
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +111,7 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 		chirps = append(chirps, Chirp{
 			ID:   dbChirp.ID,
 			Body: dbChirp.Body,
+      Author_ID: dbChirp.Author_ID,
 		})
 	}
 

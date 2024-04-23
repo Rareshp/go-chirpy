@@ -7,6 +7,7 @@ import (
 )
 
 func respondWithError(w http.ResponseWriter, code int, msg string) {
+  log.Println(msg)
 	if code > 499 {
 		log.Printf("Responding with 5XX error: %s", msg)
 	}

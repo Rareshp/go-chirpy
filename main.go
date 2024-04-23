@@ -71,10 +71,12 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handlerChirpsRetrieveById)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
-	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate) //
 	mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
 
-	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)
+	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin) //
+  mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshToken)
+  mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
 
   // wrap the mux to add CORS 
   corsMux := middlewareCors(mux)

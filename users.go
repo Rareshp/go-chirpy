@@ -12,6 +12,10 @@ type User struct {
   Hash string `json:"hash"`
   Email string `json:"email"`
   ID int `json:"id"`
+  AccessToken string `json:"access_token"`
+  RefreshToken string `json:"refresh_token"`
+  RefreshTokenRevokedAt string `json:"refresh_token_revoked_at"`
+  AccessTokenRevokedAt string `json:"access_token_revoked_at"`
 }
 
 type UserResponse struct {
@@ -140,12 +144,12 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Email string `json:"email"`
     Password string `json:"password"`
-    Expires_in_seconds int `json:"expires_in_seconds"`
 	}
   type UserResponse struct {
     Email string `json:"email"`
     ID int `json:"id"`
     Token string `json:"token"`
+    Refresh_Token string `json:"refresh_token"`
   }
 
 	decoder := json.NewDecoder(r.Body)
@@ -170,16 +174,24 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-  token, TokenErr := cfg.jwtCreateToken(params.Expires_in_seconds, user.ID)
+  accessToken, TokenErr := cfg.jwtCreateAccessToken(user.ID)
+  if TokenErr != nil {
+		respondWithError(w, http.StatusInternalServerError, TokenErr.Error())
+    return
+  }
+  refreshToken, TokenErr := cfg.jwtCreateRefreshToken(user.ID)
   if TokenErr != nil {
 		respondWithError(w, http.StatusInternalServerError, TokenErr.Error())
     return
   }
 
+  cfg.DB.SetUserTokens(user.ID, accessToken, refreshToken)
+
 	respondWithJSON(w, http.StatusOK, UserResponse{
 		Email: user.Email,
 		ID:   user.ID,
-    Token: token,
+    Token: accessToken,
+    Refresh_Token: refreshToken,
 	})
 }
 
@@ -203,6 +215,16 @@ func (cfg *apiConfig) handlerUsersUpdate(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT")
 		return
 	}
+
+  issuer, errI := GetIssuer(token, cfg.jwtSecret)
+  if errI != nil {
+    respondWithError(w, http.StatusUnauthorized, "Coulnd't validate Issuer")
+    return
+  }
+  if issuer == "chirpy-refresh" {
+    respondWithError(w, http.StatusUnauthorized, "Cannot use refresh token for this entry point")
+    return
+  }
 
 	decoder := json.NewDecoder(r.Body)
 	params := parameters{}

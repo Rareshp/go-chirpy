@@ -9,25 +9,16 @@ import (
   "github.com/golang-jwt/jwt/v5"
 )
 
-func (cfg *apiConfig) jwtCreateToken(expireInSeconds int, id int) (string, error) {
+func (cfg *apiConfig) jwtCreateToken(issuer string, expireInSeconds int, id int) (string, error) {
   // Create a new token object, specifying signing method and the claims
-
-  timeNow := time.Now()
 
   // Calculate the expiration time
   expireDuration := time.Duration(expireInSeconds) * time.Second
-  defaultExpiration := 24 * time.Hour
-  expiration := timeNow.Add(defaultExpiration)
-  if expireInSeconds > int(defaultExpiration.Seconds()) {
-      expiration = timeNow.Add(defaultExpiration)
-  } else if expireInSeconds > 0 {
-      expiration = timeNow.Add(expireDuration)
-  }
 
   token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.RegisteredClaims{
-    Issuer: "chirpy",
-    IssuedAt: jwt.NewNumericDate(timeNow.UTC()),
-    ExpiresAt: jwt.NewNumericDate(expiration.UTC()),
+    Issuer: issuer,
+    IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
+    ExpiresAt: jwt.NewNumericDate(time.Now().Add(expireDuration).UTC()),
     Subject: fmt.Sprint(id),
   })
 
@@ -38,6 +29,23 @@ func (cfg *apiConfig) jwtCreateToken(expireInSeconds int, id int) (string, error
   }
 
   return tokenString, nil
+}
+
+func (cfg *apiConfig) jwtCreateAccessToken(id int) (string, error) {
+  // access tokens have 1 hour 
+  token, err := cfg.jwtCreateToken("chirpy-access", 3600, id)
+  if err != nil {
+    return "", err
+  }
+  return token, nil
+}
+func (cfg *apiConfig) jwtCreateRefreshToken(id int) (string, error) {
+  // refresh tokens have 60 days = 
+  token, err := cfg.jwtCreateToken("chirpy-refresh", 60 * 24 * 3600, id)
+  if err != nil {
+    return "", err
+  }
+  return token, nil
 }
 
 func (cfg *apiConfig) jwtParseToken(tokenString string) (string, error) {
@@ -75,6 +83,25 @@ func ValidateJWT(tokenString, tokenSecret string) (string, error) {
 	}
 
 	return userIDString, nil
+}
+
+func GetIssuer(tokenString, tokenSecret string) (string, error) { 
+	claimsStruct := jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&claimsStruct,
+		func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
+	)
+	if err != nil {
+		return "", err
+	}
+
+	issuerString, err := token.Claims.GetIssuer()
+	if err != nil {
+		return "", err
+	}
+
+	return issuerString, nil
 }
 
 func GetBearerToken(headers http.Header) (string, error) {

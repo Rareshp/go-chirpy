@@ -4,6 +4,7 @@ import (
   "os"
   "errors"
   "sync"
+  "time"
   "encoding/json"
 ) 
 
@@ -159,7 +160,64 @@ func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
 
 	return user, nil
 }
+func (db *DB) SetUserTokens(id int, accessToken, refreshToken string) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
 
+	user, ok := dbStructure.Users[id]
+	if !ok {
+		return User{}, errors.New("already exists")
+	}
+
+	user.AccessToken = accessToken
+	user.RefreshToken = refreshToken
+	dbStructure.Users[id] = user
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
+
+func (db *DB) FindUserByRefreshToken (refreshToken string) (User, error) {
+	dbUsers, err := db.GetUsers()
+	if err != nil {
+    return User{}, err
+	}
+  
+	for _, dbUser := range dbUsers {
+    if dbUser.RefreshToken == refreshToken {
+      return dbUser, nil
+    }
+	}
+
+  return User{}, nil
+}
+func (db *DB) RevokeRefreshToken(refreshToken string) (User, error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return User{}, err
+	}
+
+	user, err := db.FindUserByRefreshToken(refreshToken)
+	if err != nil {
+		return User{}, err
+	}
+
+	user.RefreshTokenRevokedAt = time.Now().String()
+	dbStructure.Users[user.ID] = user
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return User{}, err
+	}
+
+	return user, nil
+}
 func (db *DB) GetUsers() ([]User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {

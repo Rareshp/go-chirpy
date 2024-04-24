@@ -42,6 +42,28 @@ func validateChirp(body string) (string, error) {
 	return cleaned, nil
 }
 
+func (cfg *apiConfig) validateToken(r *http.Request, tokenType string) (string, error) {
+
+	token, err := GetBearerToken(r.Header)
+	if err != nil {
+		return "", err
+	}
+	_, errS := ValidateJWT(token, cfg.jwtSecret)
+	if errS != nil {
+		return "", errors.New("could not validate token")
+	}
+
+  issuer, errI := GetIssuer(token, cfg.jwtSecret)
+  if errI != nil {
+    return "", errors.New("could not validate Issuer")
+  }
+  if issuer != tokenType {
+    return "", errors.New("wrong token type")
+  }
+
+  return token, nil
+}
+
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
 		Body string `json:"body"`
@@ -61,35 +83,20 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	token, err := GetBearerToken(r.Header)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
-		return
-	}
-	_, errS := ValidateJWT(token, cfg.jwtSecret)
-	if errS != nil {
-		respondWithError(w, http.StatusUnauthorized, "Couldn't validate JWT")
-		return
-	}
-
-  issuer, errI := GetIssuer(token, cfg.jwtSecret)
-  if errI != nil {
-    respondWithError(w, http.StatusUnauthorized, "Coulnd't validate Issuer")
-    return
-  }
-  if issuer != "chirpy-access" {
-    respondWithError(w, http.StatusUnauthorized, "Must use access token for this entry point")
-    return
+  token, errToken := cfg.validateToken(r, "chirpy-access")
+  if errToken != nil {
+    respondWithError(w, http.StatusUnauthorized, errToken.Error())
   }
 
   user, errU := cfg.DB.FindUserByAccessToken(token)
   if errU != nil {
-    respondWithError(w, http.StatusUnauthorized, "Cannoy find user with this token")
+    respondWithError(w, http.StatusUnauthorized, "Cannot find user with this token")
+    return
   }
 
 	chirp, err := cfg.DB.CreateChirp(msgCleaned, user)
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't create chirp")
+		respondWithError(w, http.StatusInternalServerError, "Could not create chirp")
 		return
 	}
 
@@ -102,7 +109,7 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
 	dbChirps, err := cfg.DB.GetChirps()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
+		respondWithError(w, http.StatusInternalServerError, "Could not retrieve chirps")
 		return
 	}
 
@@ -122,30 +129,68 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
 	respondWithJSON(w, http.StatusOK, chirps)
 }
 
-func (cfg *apiConfig) handlerChirpsRetrieveById(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) retrieveChirpById (w http.ResponseWriter, r *http.Request) (Chirp, error) {
   // get the id
   id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve id from the GET request")
-		return
+    return Chirp{}, errors.New("couldn't retrieve id from the GET request")
 	}
 
 	dbChirps, err := cfg.DB.GetChirps()
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't retrieve chirps")
-		return
+    return Chirp{}, errors.New("couldn't retrieve chirp")
 	}
 
   // equivalent to saying the id exceeds available chirps
+  // log.Println(dbChirps)
   if len(dbChirps) < id {
-		respondWithError(w, http.StatusNotFound, "Chirp not found")
-    return
+    return Chirp{}, errors.New("chirp not found")
   }
 
   chirp := Chirp{
     ID: dbChirps[id-1].ID,
     Body: dbChirps[id-1].Body,
+    Author_ID: dbChirps[id-1].Author_ID,
+  }
+  return chirp, nil
+}
+
+func (cfg *apiConfig) handlerChirpsRetrieveById(w http.ResponseWriter, r *http.Request) {
+  chirp, err := cfg.retrieveChirpById(w, r)
+  if err != nil {
+    respondWithError(w, http.StatusForbidden, err.Error())
+  }
+	respondWithJSON(w, http.StatusOK, chirp)
+}
+func (cfg *apiConfig) handlerChirpsDeleteById(w http.ResponseWriter, r *http.Request) {
+  token, errToken := cfg.validateToken(r, "chirpy-access")
+  if errToken != nil {
+    respondWithError(w, http.StatusForbidden, errToken.Error())
+    return
   }
 
-	respondWithJSON(w, http.StatusOK, chirp)
+  user, errU := cfg.DB.FindUserByAccessToken(token)
+  if errU != nil {
+    respondWithError(w, http.StatusForbidden, "Cannot find user with this token")
+    return
+  }
+
+  chirp, errC := cfg.retrieveChirpById(w, r)
+  if errC != nil {
+    respondWithError(w, http.StatusForbidden, "Could not find this chrip")
+    return
+  }
+
+  if chirp.Author_ID != user.ID {
+    respondWithError(w, http.StatusForbidden, "This chirp does not belong to you")
+    return
+  }
+
+  errD := cfg.DB.DeleteChrip(chirp)
+  if errD != nil {
+    respondWithError(w, http.StatusInternalServerError, errD.Error())
+    return
+  }
+
+  respondWithJSON(w, http.StatusOK, chirp)
 }

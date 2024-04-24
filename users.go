@@ -8,16 +8,6 @@ import (
   "errors"
 )
 
-type User struct {
-  Hash string `json:"hash"`
-  Email string `json:"email"`
-  ID int `json:"id"`
-  AccessToken string `json:"access_token"`
-  RefreshToken string `json:"refresh_token"`
-  RefreshTokenRevokedAt string `json:"refresh_token_revoked_at"`
-  AccessTokenRevokedAt string `json:"access_token_revoked_at"`
-}
-
 type UserResponse struct {
   Email string `json:"email"`
   ID int `json:"id"`

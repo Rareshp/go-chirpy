@@ -11,6 +11,7 @@ import (
 type UserResponse struct {
   Email string `json:"email"`
   ID int `json:"id"`
+  IsChirpyRed bool `json:"is_chirpy_red"`
 }
 
 func (cfg *apiConfig) findUserByEmail(email string) (User, error) {
@@ -90,6 +91,7 @@ func (cfg *apiConfig) handlerUserCreate(w http.ResponseWriter, r *http.Request) 
 	respondWithJSON(w, http.StatusCreated, UserResponse{
 		Email: user.Email,
 		ID:   user.ID,
+    IsChirpyRed: user.IsChirpyRed,
 	})
 }
 
@@ -137,9 +139,10 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		Email string `json:"email"`
     Password string `json:"password"`
 	}
-  type UserResponse struct {
+  type UserResponseWithTokens struct {
     Email string `json:"email"`
     ID int `json:"id"`
+    IsChirpyRed bool `json:"is_chirpy_red"`
     Token string `json:"token"`
     Refresh_Token string `json:"refresh_token"`
   }
@@ -179,9 +182,10 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 
   cfg.DB.SetUserTokens(user.ID, accessToken, refreshToken)
 
-	respondWithJSON(w, http.StatusOK, UserResponse{
+	respondWithJSON(w, http.StatusOK, UserResponseWithTokens{
 		Email: user.Email,
 		ID:   user.ID,
+    IsChirpyRed: user.IsChirpyRed,
     Token: accessToken,
     Refresh_Token: refreshToken,
 	})

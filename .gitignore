@@ -1,4 +1,3 @@
 out
 database.json
 .env
-polka.go

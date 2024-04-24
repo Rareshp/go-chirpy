@@ -30,7 +30,9 @@ func (cfg *apiConfig) findUserByEmail(email string) (User, error) {
 	}
   
 	for _, dbUser := range dbUsers {
-    return dbUser, nil
+    if dbUser.Email == email {
+      return dbUser, nil
+    }
 	}
 
   return User{}, nil

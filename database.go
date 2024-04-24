@@ -115,6 +115,23 @@ func (db *DB) GetChirps() ([]Chirp, error) {
 	return chirps, nil
 }
 
+func (db *DB) DeleteChrip (chirp Chirp) (error) {
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return err
+  }
+
+  // we are deleting the key of ID from the map
+  delete(dbStructure.Chirps, chirp.ID)
+
+  errW := db.writeDB(dbStructure)
+	if errW != nil {
+		return errW
+	}
+
+  return nil
+}
+
 func (db *DB) CreateUser(email string, password string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {

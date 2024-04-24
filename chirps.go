@@ -9,12 +9,6 @@ import (
   "strconv"
 )
 
-type Chirp struct {
-  Body string `json:"body"`
-  ID int `json:"id"`
-  Author_ID int `json:"author_id"`
-}
-
 func getCleanedBody(body string, badWords map[string]struct{}) string {
 	words := strings.Split(body, " ")
 	for i, word := range words {

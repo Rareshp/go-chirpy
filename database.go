@@ -18,6 +18,22 @@ type DBStructure struct {
 	Users map[int]User `json:"users"`
 }
 
+type User struct {
+  Hash string `json:"hash"`
+  Email string `json:"email"`
+  ID int `json:"id"`
+  AccessToken string `json:"access_token"`
+  RefreshToken string `json:"refresh_token"`
+  RefreshTokenRevokedAt string `json:"refresh_token_revoked_at"`
+  AccessTokenRevokedAt string `json:"access_token_revoked_at"`
+}
+
+type Chirp struct {
+  Body string `json:"body"`
+  ID int `json:"id"`
+  Author_ID int `json:"author_id"`
+}
+
 // NewDB creates a new database connection
 func NewDB(path string) (*DB, error) {
 	db := &DB{

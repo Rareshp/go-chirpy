@@ -26,6 +26,7 @@ type User struct {
   RefreshToken string `json:"refresh_token"`
   RefreshTokenRevokedAt string `json:"refresh_token_revoked_at"`
   AccessTokenRevokedAt string `json:"access_token_revoked_at"`
+  IsChirpyRed bool `json:"is_chirpy_red"`
 }
 
 type Chirp struct {
@@ -172,20 +173,20 @@ func (db *DB) CreateUser(email string, password string) (User, error) {
 	return user, nil
 }
 
-func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
+func (db *DB) UpdateUser(userId int, email, hashedPassword string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
 	}
 
-	user, ok := dbStructure.Users[id]
+	user, ok := dbStructure.Users[userId]
 	if !ok {
 		return User{}, errors.New("already exists")
 	}
 
 	user.Email = email
 	user.Hash = hashedPassword
-	dbStructure.Users[id] = user
+	dbStructure.Users[userId] = user
 
 	err = db.writeDB(dbStructure)
 	if err != nil {
@@ -194,20 +195,43 @@ func (db *DB) UpdateUser(id int, email, hashedPassword string) (User, error) {
 
 	return user, nil
 }
-func (db *DB) SetUserTokens(id int, accessToken, refreshToken string) (User, error) {
+
+func (db *DB) UpgradeUserToRed(userId int) (error) {
+	dbStructure, err := db.loadDB()
+	if err != nil {
+		return err
+	}
+
+	user, ok := dbStructure.Users[userId]
+	if !ok {
+		return errors.New("already exists")
+	}
+
+	user.IsChirpyRed = true
+	dbStructure.Users[userId] = user
+
+	err = db.writeDB(dbStructure)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) SetUserTokens(userId int, accessToken, refreshToken string) (User, error) {
 	dbStructure, err := db.loadDB()
 	if err != nil {
 		return User{}, err
 	}
 
-	user, ok := dbStructure.Users[id]
+	user, ok := dbStructure.Users[userId]
 	if !ok {
 		return User{}, errors.New("already exists")
 	}
 
 	user.AccessToken = accessToken
 	user.RefreshToken = refreshToken
-	dbStructure.Users[id] = user
+	dbStructure.Users[userId] = user
 
 	err = db.writeDB(dbStructure)
 	if err != nil {

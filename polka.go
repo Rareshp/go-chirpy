@@ -3,17 +3,17 @@ package main
 
 import (
   "net/http"
-	"encoding/json"
+  "encoding/json"
   "strings"
   "errors"
 )
 
 func (cfg *apiConfig) handlerUserUpgradeToRed(w http.ResponseWriter, r *http.Request) {
-	apiKey, errK := getAPIKey(r.Header)
-	if errK != nil {
-		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
-		return
-	}
+  apiKey, errK := getAPIKey(r.Header)
+  if errK != nil {
+    respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
+    return
+  }
   if apiKey != cfg.polkaAPIKey {
     respondWithError(w, http.StatusUnauthorized, "Invalid API Key")
     return
@@ -27,14 +27,14 @@ func (cfg *apiConfig) handlerUserUpgradeToRed(w http.ResponseWriter, r *http.Req
     User_Id int `json:"user_id"`
   }
 
-	type parameters struct {
-		Event string `json:"event"`
+  type parameters struct {
+    Event string `json:"event"`
     Data parameterData `json:"data"`
-	}
+  }
 
-	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
-	err := decoder.Decode(&params)
+  decoder := json.NewDecoder(r.Body)
+  params := parameters{}
+  err := decoder.Decode(&params)
   if params.Event != "user.upgraded" {
     respondWithJSON(w, http.StatusOK, "")
     return 
@@ -54,14 +54,14 @@ func (cfg *apiConfig) handlerUserUpgradeToRed(w http.ResponseWriter, r *http.Req
 }
 
 func getAPIKey(headers http.Header) (string, error) {
-	authHeader := headers.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("auth header is empty")
-	}
-	splitAuth := strings.Split(authHeader, " ")
-	if len(splitAuth) < 2 || splitAuth[0] != "ApiKey" {
-		return "", errors.New("malformed authorization header")
-	}
+  authHeader := headers.Get("Authorization")
+  if authHeader == "" {
+    return "", errors.New("auth header is empty")
+  }
+  splitAuth := strings.Split(authHeader, " ")
+  if len(splitAuth) < 2 || splitAuth[0] != "ApiKey" {
+    return "", errors.New("malformed authorization header")
+  }
 
-	return splitAuth[1], nil
+  return splitAuth[1], nil
 }

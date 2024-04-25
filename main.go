@@ -1,8 +1,8 @@
 package main
 
 import (
-	"log"
-	"net/http"
+  "log"
+  "net/http"
   "os"
   "github.com/joho/godotenv"
 )
@@ -20,20 +20,20 @@ type apiConfig struct {
 }
 
 func middlewareCors(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+  return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Access-Control-Allow-Origin", "*")
+    w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE")
+    w.Header().Set("Access-Control-Allow-Headers", "*")
+    if r.Method == "OPTIONS" {
+      w.WriteHeader(http.StatusOK)
+      return
+    }
+    next.ServeHTTP(w, r)
+  })
 }
 
 func healthHandler(w http.ResponseWriter, _ *http.Request) {
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+    w.Header().Set("Content-Type", "text/plain; charset=utf-8")
     w.WriteHeader(http.StatusOK)
     w.Write([]byte("OK"))
 }
@@ -50,10 +50,10 @@ func main() {
   mux := http.NewServeMux() 
 
 
-	db, err := NewDB("database.json")
-	if err != nil {
-		log.Fatal(err)
-	}
+  db, err := NewDB("database.json")
+  if err != nil {
+    log.Fatal(err)
+  }
 
   apiCfg := apiConfig {
     fileserverHits: 0,
@@ -63,22 +63,22 @@ func main() {
   }
 
   // or http.Dir("./app")
-	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
-	mux.HandleFunc("GET /api/healthz", healthHandler)
-	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
-	mux.HandleFunc("GET /api/reset", apiCfg.handlerReset)
+  mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
+  mux.HandleFunc("GET /api/healthz", healthHandler)
+  mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
+  mux.HandleFunc("GET /api/reset", apiCfg.handlerReset)
 
-	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
-	mux.HandleFunc("GET /api/chirps", apiCfg.handlerChirpsRetrieve)
+  mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirpsCreate)
+  mux.HandleFunc("GET /api/chirps", apiCfg.handlerChirpsRetrieve)
 
-	mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handlerChirpsRetrieveById)
-	mux.HandleFunc("DELETE /api/chirps/{id}", apiCfg.handlerChirpsDeleteById)
+  mux.HandleFunc("GET /api/chirps/{id}", apiCfg.handlerChirpsRetrieveById)
+  mux.HandleFunc("DELETE /api/chirps/{id}", apiCfg.handlerChirpsDeleteById)
 
-	mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
-	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
-	mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
+  mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
+  mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
+  mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
 
-	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)
+  mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)
   mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshToken)
   mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
 

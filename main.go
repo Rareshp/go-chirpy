@@ -16,6 +16,7 @@ type apiConfig struct {
   fileserverHits int
   DB             *DB
   jwtSecret       string
+  polkaAPIKey     string
 }
 
 func middlewareCors(next http.Handler) http.Handler {
@@ -44,6 +45,7 @@ func main() {
     log.Fatal("Error loading .env file")
   }
   jwtSecret := os.Getenv("JWT_SECRET")
+  polkaAPIKey := os.Getenv("POLKA_API_KEY")
 
   mux := http.NewServeMux() 
 
@@ -57,6 +59,7 @@ func main() {
     fileserverHits: 0,
     DB: db,
     jwtSecret: jwtSecret,
+    polkaAPIKey: polkaAPIKey,
   }
 
   // or http.Dir("./app")
@@ -72,10 +75,10 @@ func main() {
 	mux.HandleFunc("DELETE /api/chirps/{id}", apiCfg.handlerChirpsDeleteById)
 
 	mux.HandleFunc("POST /api/users", apiCfg.handlerUserCreate)
-	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate) //
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUsersUpdate)
 	mux.HandleFunc("GET /api/users/{id}", apiCfg.handlerUsersRetrieveById)
 
-	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin) //
+	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)
   mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshToken)
   mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
 

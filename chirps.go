@@ -101,6 +101,10 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
 	})
 }
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
+  // get sort order string if it exists 
+  sortOrder := r.URL.Query().Get("sort")
+  if sortOrder == "" { sortOrder = "asc" }
+
   // get author_id string if it exists
   authorIdString := r.URL.Query().Get("author_id")
   // this errors out if the string is empty
@@ -137,9 +141,16 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
     }
   }
 
-	sort.Slice(chirps, func(i, j int) bool {
-		return chirps[i].ID < chirps[j].ID
-	})
+  if sortOrder == "asc" {
+    sort.Slice(chirps, func(i, j int) bool {
+      return chirps[i].ID < chirps[j].ID
+    })
+  }
+  if sortOrder == "desc" {
+    sort.Slice(chirps, func(i, j int) bool {
+      return chirps[i].ID > chirps[j].ID
+    })
+  }
 
 	respondWithJSON(w, http.StatusOK, chirps)
 }

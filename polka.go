@@ -4,9 +4,21 @@ package main
 import (
   "net/http"
 	"encoding/json"
+  "strings"
+  "errors"
 )
 
 func (cfg *apiConfig) handlerUserUpgradeToRed(w http.ResponseWriter, r *http.Request) {
+	apiKey, errK := getAPIKey(r.Header)
+	if errK != nil {
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find JWT")
+		return
+	}
+  if apiKey != cfg.polkaAPIKey {
+    respondWithError(w, http.StatusUnauthorized, "Invalid API Key")
+    return
+  }
+
   type response struct {
     Token string `json:"token"`
   }
@@ -39,4 +51,17 @@ func (cfg *apiConfig) handlerUserUpgradeToRed(w http.ResponseWriter, r *http.Req
   }
 
   respondWithJSON(w, http.StatusOK, "")
+}
+
+func getAPIKey(headers http.Header) (string, error) {
+	authHeader := headers.Get("Authorization")
+	if authHeader == "" {
+		return "", errors.New("auth header is empty")
+	}
+	splitAuth := strings.Split(authHeader, " ")
+	if len(splitAuth) < 2 || splitAuth[0] != "ApiKey" {
+		return "", errors.New("malformed authorization header")
+	}
+
+	return splitAuth[1], nil
 }

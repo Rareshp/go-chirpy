@@ -1,8 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"net/http"
+  "encoding/json"
+  "net/http"
   "errors"
   "strings"
   "sort"
@@ -10,42 +10,42 @@ import (
 )
 
 func getCleanedBody(body string, badWords map[string]struct{}) string {
-	words := strings.Split(body, " ")
-	for i, word := range words {
-		loweredWord := strings.ToLower(word)
-		if _, ok := badWords[loweredWord]; ok {
-			words[i] = "****"
-		}
-	}
-	cleaned := strings.Join(words, " ")
-	return cleaned
+  words := strings.Split(body, " ")
+  for i, word := range words {
+    loweredWord := strings.ToLower(word)
+    if _, ok := badWords[loweredWord]; ok {
+      words[i] = "****"
+    }
+  }
+  cleaned := strings.Join(words, " ")
+  return cleaned
 }
 
 func validateChirp(body string) (string, error) {
-	const maxChirpLength = 140
-	if len(body) > maxChirpLength {
-		return "", errors.New("Chirp is too long")
-	}
+  const maxChirpLength = 140
+  if len(body) > maxChirpLength {
+    return "", errors.New("Chirp is too long")
+  }
 
-	badWords := map[string]struct{}{
-		"kerfuffle": {},
-		"sharbert":  {},
-		"fornax":    {},
-	}
-	cleaned := getCleanedBody(body, badWords)
-	return cleaned, nil
+  badWords := map[string]struct{}{
+    "kerfuffle": {},
+    "sharbert":  {},
+    "fornax":    {},
+  }
+  cleaned := getCleanedBody(body, badWords)
+  return cleaned, nil
 }
 
 func (cfg *apiConfig) validateToken(r *http.Request, tokenType string) (string, error) {
 
-	token, err := GetBearerToken(r.Header)
-	if err != nil {
-		return "", err
-	}
-	_, errS := ValidateJWT(token, cfg.jwtSecret)
-	if errS != nil {
-		return "", errors.New("could not validate token")
-	}
+  token, err := GetBearerToken(r.Header)
+  if err != nil {
+    return "", err
+  }
+  _, errS := ValidateJWT(token, cfg.jwtSecret)
+  if errS != nil {
+    return "", errors.New("could not validate token")
+  }
 
   issuer, errI := GetIssuer(token, cfg.jwtSecret)
   if errI != nil {
@@ -59,23 +59,23 @@ func (cfg *apiConfig) validateToken(r *http.Request, tokenType string) (string, 
 }
 
 func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request) {
-	type parameters struct {
-		Body string `json:"body"`
-	}
+  type parameters struct {
+    Body string `json:"body"`
+  }
 
-	decoder := json.NewDecoder(r.Body)
-	params := parameters{}
-	err := decoder.Decode(&params)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
-		return
-	}
+  decoder := json.NewDecoder(r.Body)
+  params := parameters{}
+  err := decoder.Decode(&params)
+  if err != nil {
+    respondWithError(w, http.StatusInternalServerError, "Couldn't decode parameters")
+    return
+  }
 
-	msgCleaned, err := validateChirp(params.Body)
-	if err != nil {
-		respondWithError(w, http.StatusBadRequest, err.Error())
-		return
-	}
+  msgCleaned, err := validateChirp(params.Body)
+  if err != nil {
+    respondWithError(w, http.StatusBadRequest, err.Error())
+    return
+  }
 
   token, errToken := cfg.validateToken(r, "chirpy-access")
   if errToken != nil {
@@ -88,17 +88,17 @@ func (cfg *apiConfig) handlerChirpsCreate(w http.ResponseWriter, r *http.Request
     return
   }
 
-	chirp, err := cfg.DB.CreateChirp(msgCleaned, user)
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not create chirp")
-		return
-	}
+  chirp, err := cfg.DB.CreateChirp(msgCleaned, user)
+  if err != nil {
+    respondWithError(w, http.StatusInternalServerError, "Could not create chirp")
+    return
+  }
 
-	respondWithJSON(w, http.StatusCreated, Chirp{
-		Body: chirp.Body,
-		ID:   chirp.ID,
+  respondWithJSON(w, http.StatusCreated, Chirp{
+    Body: chirp.Body,
+    ID:   chirp.ID,
     Author_ID: user.ID,
-	})
+  })
 }
 func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Request) {
   // get sort order string if it exists 
@@ -113,13 +113,13 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
     authorId = 0
   }
 
-	dbChirps, err := cfg.DB.GetChirps()
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Could not retrieve chirps")
-		return
-	}
+  dbChirps, err := cfg.DB.GetChirps()
+  if err != nil {
+    respondWithError(w, http.StatusInternalServerError, "Could not retrieve chirps")
+    return
+  }
 
-	chirps := []Chirp{}
+  chirps := []Chirp{}
 
   if authorId == 0 {
     for _, dbChirp := range dbChirps {
@@ -152,20 +152,20 @@ func (cfg *apiConfig) handlerChirpsRetrieve(w http.ResponseWriter, r *http.Reque
     })
   }
 
-	respondWithJSON(w, http.StatusOK, chirps)
+  respondWithJSON(w, http.StatusOK, chirps)
 }
 
 func (cfg *apiConfig) retrieveChirpById (w http.ResponseWriter, r *http.Request) (Chirp, error) {
   // get the id
   id, err := strconv.Atoi(r.PathValue("id"))
-	if err != nil {
+  if err != nil {
     return Chirp{}, errors.New("couldn't retrieve id from the GET request")
-	}
+  }
 
-	dbChirps, err := cfg.DB.GetChirps()
-	if err != nil {
+  dbChirps, err := cfg.DB.GetChirps()
+  if err != nil {
     return Chirp{}, errors.New("couldn't retrieve chirp")
-	}
+  }
 
   // equivalent to saying the id exceeds available chirps
   // log.Println(dbChirps)
@@ -186,7 +186,7 @@ func (cfg *apiConfig) handlerChirpsRetrieveById(w http.ResponseWriter, r *http.R
   if err != nil {
     respondWithError(w, http.StatusForbidden, err.Error())
   }
-	respondWithJSON(w, http.StatusOK, chirp)
+  respondWithJSON(w, http.StatusOK, chirp)
 }
 func (cfg *apiConfig) handlerChirpsDeleteById(w http.ResponseWriter, r *http.Request) {
   token, errToken := cfg.validateToken(r, "chirpy-access")

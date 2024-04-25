@@ -9,13 +9,13 @@ import (
 ) 
 
 type DB struct {
-	path string
-	mu  *sync.RWMutex
+  path string
+  mu  *sync.RWMutex
 }
 
 type DBStructure struct {
-	Chirps map[int]Chirp `json:"chirps"`
-	Users map[int]User `json:"users"`
+  Chirps map[int]Chirp `json:"chirps"`
+  Users map[int]User `json:"users"`
 }
 
 type User struct {
@@ -37,99 +37,99 @@ type Chirp struct {
 
 // NewDB creates a new database connection
 func NewDB(path string) (*DB, error) {
-	db := &DB{
-		path: path,
-		mu:   &sync.RWMutex{},
-	}
-	err := db.ensureDB()
-	return db, err
+  db := &DB{
+    path: path,
+    mu:   &sync.RWMutex{},
+  }
+  err := db.ensureDB()
+  return db, err
 }
 
 // if the database file does not exist, create it 
 func (db *DB) ensureDB() error {
-	_, err := os.ReadFile(db.path)
-	if errors.Is(err, os.ErrNotExist) {
-		return db.createStructureDB()
-	}
-	return err
+  _, err := os.ReadFile(db.path)
+  if errors.Is(err, os.ErrNotExist) {
+    return db.createStructureDB()
+  }
+  return err
 }
 
 // this creates the structure of the database to write to file 
 func (db *DB) createStructureDB() error {
-	dbStructure := DBStructure{
-		Chirps: map[int]Chirp{},
-		Users: map[int]User{},
-	}
-	return db.writeDB(dbStructure)
+  dbStructure := DBStructure{
+    Chirps: map[int]Chirp{},
+    Users: map[int]User{},
+  }
+  return db.writeDB(dbStructure)
 }
 
 func (db *DB) writeDB(dbStructure DBStructure) error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
+  db.mu.Lock()
+  defer db.mu.Unlock()
 
-	dat, err := json.Marshal(dbStructure)
-	if err != nil {
-		return err
-	}
+  dat, err := json.Marshal(dbStructure)
+  if err != nil {
+    return err
+  }
 
-	err = os.WriteFile(db.path, dat, 0600)
-	if err != nil {
-		return err
-	}
-	return nil
+  err = os.WriteFile(db.path, dat, 0600)
+  if err != nil {
+    return err
+  }
+  return nil
 }
 
 func (db *DB) loadDB() (DBStructure, error) {
-	db.mu.RLock()
-	defer db.mu.RUnlock()
+  db.mu.RLock()
+  defer db.mu.RUnlock()
 
-	dbStructure := DBStructure{}
-	dat, err := os.ReadFile(db.path)
-	if errors.Is(err, os.ErrNotExist) {
-		return dbStructure, err
-	}
-	err = json.Unmarshal(dat, &dbStructure)
-	if err != nil {
-		return dbStructure, err
-	}
+  dbStructure := DBStructure{}
+  dat, err := os.ReadFile(db.path)
+  if errors.Is(err, os.ErrNotExist) {
+    return dbStructure, err
+  }
+  err = json.Unmarshal(dat, &dbStructure)
+  if err != nil {
+    return dbStructure, err
+  }
 
-	return dbStructure, nil
+  return dbStructure, nil
 }
 
 func (db *DB) CreateChirp(body string, user User) (Chirp, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return Chirp{}, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return Chirp{}, err
+  }
 
-	id := len(dbStructure.Chirps) + 1
-	chirp := Chirp{
-		ID:   id,
-		Body: body,
+  id := len(dbStructure.Chirps) + 1
+  chirp := Chirp{
+    ID:   id,
+    Body: body,
     Author_ID: user.ID,
-	}
-	dbStructure.Chirps[id] = chirp
+  }
+  dbStructure.Chirps[id] = chirp
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return Chirp{}, err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return Chirp{}, err
+  }
 
-	return chirp, nil
+  return chirp, nil
 }
 
 func (db *DB) GetChirps() ([]Chirp, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return nil, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return nil, err
+  }
 
-	chirps := make([]Chirp, 0, len(dbStructure.Chirps))
-	for _, chirp := range dbStructure.Chirps {
-		chirps = append(chirps, chirp)
-	}
+  chirps := make([]Chirp, 0, len(dbStructure.Chirps))
+  for _, chirp := range dbStructure.Chirps {
+    chirps = append(chirps, chirp)
+  }
 
-	return chirps, nil
+  return chirps, nil
 }
 
 func (db *DB) DeleteChrip (chirp Chirp) (error) {
@@ -142,164 +142,164 @@ func (db *DB) DeleteChrip (chirp Chirp) (error) {
   delete(dbStructure.Chirps, chirp.ID)
 
   errW := db.writeDB(dbStructure)
-	if errW != nil {
-		return errW
-	}
+  if errW != nil {
+    return errW
+  }
 
   return nil
 }
 
 func (db *DB) CreateUser(email string, password string) (User, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return User{}, err
+  }
 
-	id := len(dbStructure.Users) + 1
+  id := len(dbStructure.Users) + 1
   hash, _ := HashPassword(password)
 
-	user := User{
-		ID:   id,
-		Email: email,
+  user := User{
+    ID:   id,
+    Email: email,
     Hash: hash,
-	}
-	dbStructure.Users[id] = user
+  }
+  dbStructure.Users[id] = user
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return User{}, err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return User{}, err
+  }
 
-	return user, nil
+  return user, nil
 }
 
 func (db *DB) UpdateUser(userId int, email, hashedPassword string) (User, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return User{}, err
+  }
 
-	user, ok := dbStructure.Users[userId]
-	if !ok {
-		return User{}, errors.New("already exists")
-	}
+  user, ok := dbStructure.Users[userId]
+  if !ok {
+    return User{}, errors.New("already exists")
+  }
 
-	user.Email = email
-	user.Hash = hashedPassword
-	dbStructure.Users[userId] = user
+  user.Email = email
+  user.Hash = hashedPassword
+  dbStructure.Users[userId] = user
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return User{}, err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return User{}, err
+  }
 
-	return user, nil
+  return user, nil
 }
 
 func (db *DB) UpgradeUserToRed(userId int) (error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return err
+  }
 
-	user, ok := dbStructure.Users[userId]
-	if !ok {
-		return errors.New("already exists")
-	}
+  user, ok := dbStructure.Users[userId]
+  if !ok {
+    return errors.New("already exists")
+  }
 
-	user.IsChirpyRed = true
-	dbStructure.Users[userId] = user
+  user.IsChirpyRed = true
+  dbStructure.Users[userId] = user
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return err
+  }
 
-	return nil
+  return nil
 }
 
 func (db *DB) SetUserTokens(userId int, accessToken, refreshToken string) (User, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return User{}, err
+  }
 
-	user, ok := dbStructure.Users[userId]
-	if !ok {
-		return User{}, errors.New("already exists")
-	}
+  user, ok := dbStructure.Users[userId]
+  if !ok {
+    return User{}, errors.New("already exists")
+  }
 
-	user.AccessToken = accessToken
-	user.RefreshToken = refreshToken
-	dbStructure.Users[userId] = user
+  user.AccessToken = accessToken
+  user.RefreshToken = refreshToken
+  dbStructure.Users[userId] = user
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return User{}, err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return User{}, err
+  }
 
-	return user, nil
+  return user, nil
 }
 
 func (db *DB) FindUserByRefreshToken (refreshToken string) (User, error) {
-	dbUsers, err := db.GetUsers()
-	if err != nil {
+  dbUsers, err := db.GetUsers()
+  if err != nil {
     return User{}, err
-	}
+  }
   
-	for _, dbUser := range dbUsers {
+  for _, dbUser := range dbUsers {
     if dbUser.RefreshToken == refreshToken {
       return dbUser, nil
     }
-	}
+  }
 
   return User{}, nil
 }
 func (db *DB) FindUserByAccessToken (accessToken string) (User, error) {
-	dbUsers, err := db.GetUsers()
-	if err != nil {
+  dbUsers, err := db.GetUsers()
+  if err != nil {
     return User{}, err
-	}
+  }
   
-	for _, dbUser := range dbUsers {
+  for _, dbUser := range dbUsers {
     if dbUser.AccessToken == accessToken {
       return dbUser, nil
     }
-	}
+  }
 
   return User{}, nil
 }
 func (db *DB) RevokeRefreshToken(refreshToken string) (User, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return User{}, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return User{}, err
+  }
 
-	user, err := db.FindUserByRefreshToken(refreshToken)
-	if err != nil {
-		return User{}, err
-	}
+  user, err := db.FindUserByRefreshToken(refreshToken)
+  if err != nil {
+    return User{}, err
+  }
 
-	user.RefreshTokenRevokedAt = time.Now().String()
-	dbStructure.Users[user.ID] = user
+  user.RefreshTokenRevokedAt = time.Now().String()
+  dbStructure.Users[user.ID] = user
 
-	err = db.writeDB(dbStructure)
-	if err != nil {
-		return User{}, err
-	}
+  err = db.writeDB(dbStructure)
+  if err != nil {
+    return User{}, err
+  }
 
-	return user, nil
+  return user, nil
 }
 func (db *DB) GetUsers() ([]User, error) {
-	dbStructure, err := db.loadDB()
-	if err != nil {
-		return nil, err
-	}
+  dbStructure, err := db.loadDB()
+  if err != nil {
+    return nil, err
+  }
 
-	users := make([]User, 0, len(dbStructure.Users))
-	for _, user := range dbStructure.Users {
-		users = append(users, user)
-	}
+  users := make([]User, 0, len(dbStructure.Users))
+  for _, user := range dbStructure.Users {
+    users = append(users, user)
+  }
 
-	return users, nil
+  return users, nil
 }

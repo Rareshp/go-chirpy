@@ -67,52 +67,52 @@ func (cfg *apiConfig) jwtParseToken(tokenString string) (string, error) {
 }
 
 func ValidateJWT(tokenString, tokenSecret string) (string, error) {
-	claimsStruct := jwt.RegisteredClaims{}
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&claimsStruct,
-		func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
-	)
-	if err != nil {
-		return "", err
-	}
+  claimsStruct := jwt.RegisteredClaims{}
+  token, err := jwt.ParseWithClaims(
+    tokenString,
+    &claimsStruct,
+    func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
+  )
+  if err != nil {
+    return "", err
+  }
 
-	userIDString, err := token.Claims.GetSubject()
-	if err != nil {
-		return "", err
-	}
+  userIDString, err := token.Claims.GetSubject()
+  if err != nil {
+    return "", err
+  }
 
-	return userIDString, nil
+  return userIDString, nil
 }
 
 func GetIssuer(tokenString, tokenSecret string) (string, error) { 
-	claimsStruct := jwt.RegisteredClaims{}
-	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&claimsStruct,
-		func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
-	)
-	if err != nil {
-		return "", err
-	}
+  claimsStruct := jwt.RegisteredClaims{}
+  token, err := jwt.ParseWithClaims(
+    tokenString,
+    &claimsStruct,
+    func(token *jwt.Token) (interface{}, error) { return []byte(tokenSecret), nil },
+  )
+  if err != nil {
+    return "", err
+  }
 
-	issuerString, err := token.Claims.GetIssuer()
-	if err != nil {
-		return "", err
-	}
+  issuerString, err := token.Claims.GetIssuer()
+  if err != nil {
+    return "", err
+  }
 
-	return issuerString, nil
+  return issuerString, nil
 }
 
 func GetBearerToken(headers http.Header) (string, error) {
-	authHeader := headers.Get("Authorization")
-	if authHeader == "" {
-		return "", errors.New("auth header is empty")
-	}
-	splitAuth := strings.Split(authHeader, " ")
-	if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
-		return "", errors.New("malformed authorization header")
-	}
+  authHeader := headers.Get("Authorization")
+  if authHeader == "" {
+    return "", errors.New("auth header is empty")
+  }
+  splitAuth := strings.Split(authHeader, " ")
+  if len(splitAuth) < 2 || splitAuth[0] != "Bearer" {
+    return "", errors.New("malformed authorization header")
+  }
 
-	return splitAuth[1], nil
+  return splitAuth[1], nil
 }
